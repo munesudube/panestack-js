@@ -23,7 +23,7 @@
     }
 
     function getHandle(side, width, css_class){
-        let $handle = $('<div></div>').css('position', 'absolute');
+        let $handle = $('<div></div>').css('position', 'absolute').css('background-color', 'transparent');
         if(css_class) $handle.addClass(css_class);
         if(!side) return $handle;
         side = side.toLowerCase();
@@ -97,11 +97,15 @@
 
                     if(!is_first){
                         let $handle = getHandle('top', options.resizeHandleWidth, options.resizeHandleClass);
+                        $handle.css('border-top', $pane.css('border-top'));
+                        $pane.css('border-top', 'none');
                         $pane.append($handle);
                     }
 
                     if(!is_last){
                         let $handle = getHandle('bottom', options.resizeHandleWidth, options.resizeHandleClass);
+                        $handle.css('border-bottom', $pane.css('border-bottom'));
+                        $pane.css('border-bottom', 'none');
                         $pane.append($handle);
                     }
                 }
@@ -113,11 +117,15 @@
 
                     if(!is_first){
                         let $handle = getHandle('left', options.resizeHandleWidth, options.resizeHandleClass);
+                        $handle.css('border-left', $pane.css('border-left'));
+                        $pane.css('border-left', 'none');
                         $pane.append($handle);
                     }
 
                     if(!is_last){
                         let $handle = getHandle('right', options.resizeHandleWidth, options.resizeHandleClass);
+                        $handle.css('border-right', $pane.css('border-right'));
+                        $pane.css('border-right', 'none');
                         $pane.append($handle);
                     }
                 }
