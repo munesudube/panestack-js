@@ -1,3 +1,5 @@
+'use strict';
+
 (function($){
     function trimObj(obj){
         if(typeof obj !== 'object') return obj;
@@ -38,62 +40,60 @@
         return $handle;
     }
 
-    function attachHandle($leftPane, $handle, $rightPane){
-        if(!$handle.prop('_ps_type')) return;
+    function verticalResize(e){
+        var delta = e.pageY - e.data.y;
+        if(delta > 0){
+            e.data.$right.css('height', pixels(e.data.rightHeight - delta));
+            e.data.$left.css('height', pixels(e.data.leftHeight + delta));
+        }
+        else if(delta < 0){
+            e.data.$left.css('height', pixels(e.data.leftHeight + delta));
+            e.data.$right.css('height', pixels(e.data.rightHeight - delta));
+        }
+    }
 
-        $handle.prop('_ps_leftpane', $leftPane);
-        $handle.prop('_ps_rightpane', $rightPane);
+    function horizontalResize(e){
+        var delta = e.pageX - e.data.x;
 
-        $handle.mousedown(function(e){
-            $handle.prop('_ps_x', e.pageX);
-            $handle.prop('_ps_y', e.pageY);
+        if(delta > 0){
+            e.data.$right.css('width', pixels(e.data.rightWidth - delta));
+            e.data.$left.css('width', pixels(e.data.leftWidth + delta));
+        }
+        else if(delta < 0){
+            e.data.$left.css('width', pixels(e.data.leftWidth + delta));
+            e.data.$right.css('width', pixels(e.data.rightWidth - delta));
+        }
+    }
 
-            $handle.parent().on('mouseup.panestack mouseleave.panestack', function(){
-                $handle.parent().off('.panestack');
+    function bindHandle($leftPane, $resizeHandle, $rightPane){
+        $resizeHandle.data('_ps_leftpane', $leftPane);
+        $resizeHandle.data('_ps_rightpane', $rightPane);
+
+        $resizeHandle.on('mousedown', function(e){
+            var $this = $(this);
+            var $panestack = $this.parent().parent();
+            $panestack.on('mouseup.panestack mouseleave.panestack', function(e){
+                $(this).off('.panestack');
             });
 
-            $handle.parent().on('mousemove.panestack', function(e){
-                e.preventDefault();
-                e.stopImmediatePropagation();
+            var data = {
+                orientation: $panestack.data('_ps_orientation'),
+                $left: $this.data('_ps_leftpane'),
+                $right: $this.data('_ps_rightpane'),
+                x: e.pageX,
+                y: e.pageY
+            }
 
-                if($handle.prop('_ps_type') == 'vertical'){
-                    let deltaY = e.pageY - $handle.prop('_ps_y');
-
-                    let $left = $handle.prop('_ps_leftpane');
-                    let $right = $handle.prop('_ps_rightpane');
-                    let leftHeight = parseFloat($left.css('height'));
-                    let rightHeight = parseFloat($right.css('height'));
-
-                    if(deltaY > 0){
-                        $right.css('height', pixels(rightHeight - deltaY));
-                        $left.css('height', pixels(leftHeight + deltaY));
-                    }
-                    else if(deltaY < 0){
-                        $left.css('height', pixels(leftHeight + deltaY));
-                        $right.css('height', pixels(rightHeight - deltaY));
-                    }
-                }
-                else if($handle.prop('_ps_type') == 'horizontal'){
-                    let deltaX = e.pageX - $handle.prop('_ps_x');
-
-                    let $left = $handle.prop('_ps_leftpane');
-                    let $right = $handle.prop('_ps_rightpane');
-                    let leftWidth = parseFloat($left.css('width'));
-                    let rightWidth = parseFloat($right.css('width'));
-
-                    if(deltaX > 0){
-                        $right.css('width', pixels(rightWidth - deltaX));
-                        $left.css('width', pixels(leftWidth + deltaX));
-                    }
-                    else if(deltaX < 0){
-                        $left.css('width', pixels(leftWidth + deltaX));
-                        $right.css('width', pixels(rightWidth - deltaX));
-                    }
-                }
-
-                $handle.prop('_ps_x', e.pageX);
-                $handle.prop('_ps_y', e.pageY);
-            });
+            if(data.orientation == 'vertical'){
+                data.leftHeight = parseFloat(data.$left.css('height'));
+                data.rightHeight = parseFloat(data.$right.css('height'));
+                $panestack.on('mousemove.panestack', data, verticalResize);
+            }
+            else{
+                data.leftWidth = parseFloat(data.$left.css('width'));
+                data.rightWidth = parseFloat(data.$right.css('width'));
+                $panestack.on('mousemove.panestack', data, horizontalResize);
+            }
         });
     }
 
@@ -114,6 +114,10 @@
             $this.css('box-sizing', 'border-box');
 
             let is_vertical = $this.hasClass(options.verticalClass);
+
+            if(is_vertical) $this.data('_ps_orientation', 'vertical');
+            else $this.data('_ps_orientation', 'horizontal');
+
             let total_space = is_vertical ? getHeight($this) : getWidth($this);
 
             let panestack = {};
@@ -121,7 +125,7 @@
 
             //Work out the scales
             $this.contents().each(function(){
-                $child = $(this);
+                var $child = $(this);
 
                 if($child.hasClass(options.resizeHandleClass)) return; //Ignore resize handles
 
@@ -129,7 +133,7 @@
                     this.parentElement.removeChild(this);
                     return;
                 }
-                let scale = this.dataset.scale ? Number(this.dataset.scale) : 1;
+                var scale = this.dataset.scale ? Number(this.dataset.scale) : 1;
                 if(isNaN(scale)) scale = 1;
 
                 this.dataset.scale = scale;
@@ -160,18 +164,16 @@
                         let $handle = getHandle('top', options.resizeHandleWidth, options.resizeHandleClass);
                         $handle.css('border-top', $pane.css('border-top'));
                         $pane.css('border-top', 'none');
-                        $handle.prop('_ps_type', 'vertical');
                         $pane.append($handle);
-                        attachHandle($($panes[n - 1]), $handle, $pane);
+                        bindHandle($($panes[n - 1]), $handle, $pane);
                     }
 
                     if(!is_last){
                         let $handle = getHandle('bottom', options.resizeHandleWidth, options.resizeHandleClass);
                         $handle.css('border-bottom', $pane.css('border-bottom'));
                         $pane.css('border-bottom', 'none');
-                        $handle.prop('_ps_type', 'vertical');
                         $pane.append($handle);
-                        attachHandle($pane, $handle, $($panes[n + 1]));
+                        bindHandle($pane, $handle, $($panes[n + 1]));
                     }
                 }
                 else{
@@ -184,18 +186,16 @@
                         let $handle = getHandle('left', options.resizeHandleWidth, options.resizeHandleClass);
                         $handle.css('border-left', $pane.css('border-left'));
                         $pane.css('border-left', 'none');
-                        $handle.prop('_ps_type', 'horizontal');
                         $pane.append($handle);
-                        attachHandle($($panes[n - 1]), $handle, $pane);
+                        bindHandle($($panes[n - 1]), $handle, $pane);
                     }
 
                     if(!is_last){
                         let $handle = getHandle('right', options.resizeHandleWidth, options.resizeHandleClass);
                         $handle.css('border-right', $pane.css('border-right'));
                         $pane.css('border-right', 'none');
-                        $handle.prop('_ps_type', 'horizontal');
                         $pane.append($handle);
-                        attachHandle($pane, $handle, $($panes[n + 1]));
+                        bindHandle($pane, $handle, $($panes[n + 1]));
                     }
                 }
             });
