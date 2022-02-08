@@ -38,6 +38,65 @@
         return $handle;
     }
 
+    function attachHandle($leftPane, $handle, $rightPane){
+        if(!$handle.prop('_ps_type')) return;
+
+        $handle.prop('_ps_leftpane', $leftPane);
+        $handle.prop('_ps_rightpane', $rightPane);
+
+        $handle.mousedown(function(e){
+            $handle.prop('_ps_x', e.pageX);
+            $handle.prop('_ps_y', e.pageY);
+
+            $handle.parent().on('mouseup.panestack mouseleave.panestack', function(){
+                $handle.parent().off('.panestack');
+            });
+
+            $handle.parent().on('mousemove.panestack', function(e){
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
+                if($handle.prop('_ps_type') == 'vertical'){
+                    let deltaY = e.pageY - $handle.prop('_ps_y');
+
+                    let $left = $handle.prop('_ps_leftpane');
+                    let $right = $handle.prop('_ps_rightpane');
+                    let leftHeight = parseFloat($left.css('height'));
+                    let rightHeight = parseFloat($right.css('height'));
+
+                    if(deltaY > 0){
+                        $right.css('height', pixels(rightHeight - deltaY));
+                        $left.css('height', pixels(leftHeight + deltaY));
+                    }
+                    else if(deltaY < 0){
+                        $left.css('height', pixels(leftHeight + deltaY));
+                        $right.css('height', pixels(rightHeight - deltaY));
+                    }
+                }
+                else if($handle.prop('_ps_type') == 'horizontal'){
+                    let deltaX = e.pageX - $handle.prop('_ps_x');
+
+                    let $left = $handle.prop('_ps_leftpane');
+                    let $right = $handle.prop('_ps_rightpane');
+                    let leftWidth = parseFloat($left.css('width'));
+                    let rightWidth = parseFloat($right.css('width'));
+
+                    if(deltaX > 0){
+                        $right.css('width', pixels(rightWidth - deltaX));
+                        $left.css('width', pixels(leftWidth + deltaX));
+                    }
+                    else if(deltaX < 0){
+                        $left.css('width', pixels(leftWidth + deltaX));
+                        $right.css('width', pixels(rightWidth - deltaX));
+                    }
+                }
+
+                $handle.prop('_ps_x', e.pageX);
+                $handle.prop('_ps_y', e.pageY);
+            });
+        });
+    }
+
     let defaultOptions = {
         paneClass: 'pane',
         verticalClass: 'vertical',
@@ -85,6 +144,8 @@
                 let $pane = $(this);
                 $pane.css('box-sizing', 'border-box');
                 $pane.css('position', 'relative');
+                $pane.css('margin', '0px');
+
                 let is_first = n == 0;
                 let is_last = n == lastChildIndex;
 
@@ -99,14 +160,18 @@
                         let $handle = getHandle('top', options.resizeHandleWidth, options.resizeHandleClass);
                         $handle.css('border-top', $pane.css('border-top'));
                         $pane.css('border-top', 'none');
+                        $handle.prop('_ps_type', 'vertical');
                         $pane.append($handle);
+                        attachHandle($($panes[n - 1]), $handle, $pane);
                     }
 
                     if(!is_last){
                         let $handle = getHandle('bottom', options.resizeHandleWidth, options.resizeHandleClass);
                         $handle.css('border-bottom', $pane.css('border-bottom'));
                         $pane.css('border-bottom', 'none');
+                        $handle.prop('_ps_type', 'vertical');
                         $pane.append($handle);
+                        attachHandle($pane, $handle, $($panes[n + 1]));
                     }
                 }
                 else{
@@ -119,14 +184,18 @@
                         let $handle = getHandle('left', options.resizeHandleWidth, options.resizeHandleClass);
                         $handle.css('border-left', $pane.css('border-left'));
                         $pane.css('border-left', 'none');
+                        $handle.prop('_ps_type', 'horizontal');
                         $pane.append($handle);
+                        attachHandle($($panes[n - 1]), $handle, $pane);
                     }
 
                     if(!is_last){
                         let $handle = getHandle('right', options.resizeHandleWidth, options.resizeHandleClass);
                         $handle.css('border-right', $pane.css('border-right'));
                         $pane.css('border-right', 'none');
+                        $handle.prop('_ps_type', 'horizontal');
                         $pane.append($handle);
+                        attachHandle($pane, $handle, $($panes[n + 1]));
                     }
                 }
             });
