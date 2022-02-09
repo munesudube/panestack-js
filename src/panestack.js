@@ -83,10 +83,6 @@
             var $this = $(this);
             var $panestack = $this.parent().parent();
 
-            $panestack.on('mouseup.panestack:mouse mouseleave.panestack:mouse', function(e){
-                $(this).off('.panestack:mouse');
-            });
-
             var data = {
                 orientation: $panestack.data('_ps_orientation'),
                 $left: $this.data('_ps_leftpane'),
@@ -94,6 +90,12 @@
                 x: e.pageX,
                 y: e.pageY
             }
+
+            $panestack.on('mouseup.panestack:mouse mouseleave.panestack:mouse', data, function(e){
+                $(this).off('.panestack:mouse');
+                e.data.$left.trigger('resized');
+                e.data.$right.trigger('resized');
+            });
 
             if(data.orientation == 'vertical'){
                 data.leftHeight = parseFloat(data.$left.css('height'));
@@ -209,6 +211,17 @@
                         bindHandle($pane, $handle, $($panes[n + 1]));
                     }
                 }
+
+                $pane.on('resized.panestack:size', function(e){
+                    e.stopPropagation(); //Stop bubbling
+
+                    if(e.target !== this) {
+                        //Don't let others handle, they probably expect <this> to have been the resized target
+                        e.stopImmediatePropagation();
+                    }
+
+                    return false; //Stop bubbling (overkill)
+                });
             });
 
             let height = getHeight($this);
@@ -217,6 +230,31 @@
                 if(!is_vertical){
                     $(this).css('height', pixels(height));
                 }
+            });
+
+            $this.on('resized.panestack:size', options, function(e){
+                e.stopPropagation(); //Stop bubbling
+
+                if(e.target !== this) {
+                    //Don't let others handle, they probably expect <this> to have been the resized target
+                    e.stopImmediatePropagation();
+
+                    return false; //Stop bubbling (overkill)
+                }
+
+                var $panestack = $(this);
+
+                let is_vertical = $panestack.hasClass(e.data.verticalClass);
+
+                if(!is_vertical){
+                    var height = getHeight($panestack);
+                    $panestack.children('.' + e.data.paneClass).each(function(){
+                        $(this).css('height', pixels(height));
+                    });
+                }
+
+
+                return false; //Stop bubbling (overkill)
             });
         });
 
