@@ -41,6 +41,9 @@
     }
 
     function verticalResize(e){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
         var delta = e.pageY - e.data.y;
         if(delta > 0){
             e.data.$right.css('height', pixels(e.data.rightHeight - delta));
@@ -50,9 +53,14 @@
             e.data.$left.css('height', pixels(e.data.leftHeight + delta));
             e.data.$right.css('height', pixels(e.data.rightHeight - delta));
         }
+
+        return false;
     }
 
     function horizontalResize(e){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
         var delta = e.pageX - e.data.x;
 
         if(delta > 0){
@@ -63,6 +71,8 @@
             e.data.$left.css('width', pixels(e.data.leftWidth + delta));
             e.data.$right.css('width', pixels(e.data.rightWidth - delta));
         }
+
+        return false;
     }
 
     function bindHandle($leftPane, $resizeHandle, $rightPane){
@@ -72,8 +82,9 @@
         $resizeHandle.on('mousedown', function(e){
             var $this = $(this);
             var $panestack = $this.parent().parent();
-            $panestack.on('mouseup.panestack mouseleave.panestack', function(e){
-                $(this).off('.panestack');
+
+            $panestack.on('mouseup.panestack_mouse mouseleave.panestack_mouse', function(e){
+                $(this).off('.panestack_mouse');
             });
 
             var data = {
@@ -87,12 +98,12 @@
             if(data.orientation == 'vertical'){
                 data.leftHeight = parseFloat(data.$left.css('height'));
                 data.rightHeight = parseFloat(data.$right.css('height'));
-                $panestack.on('mousemove.panestack', data, verticalResize);
+                $panestack.on('mousemove.panestack_mouse', data, verticalResize);
             }
             else{
                 data.leftWidth = parseFloat(data.$left.css('width'));
                 data.rightWidth = parseFloat(data.$right.css('width'));
-                $panestack.on('mousemove.panestack', data, horizontalResize);
+                $panestack.on('mousemove.panestack_mouse', data, horizontalResize);
             }
         });
     }
