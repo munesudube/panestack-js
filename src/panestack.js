@@ -83,8 +83,8 @@
             var $this = $(this);
             var $panestack = $this.parent().parent();
 
-            $panestack.on('mouseup.panestack_mouse mouseleave.panestack_mouse', function(e){
-                $(this).off('.panestack_mouse');
+            $panestack.on('mouseup.panestack:mouse mouseleave.panestack:mouse', function(e){
+                $(this).off('.panestack:mouse');
             });
 
             var data = {
@@ -98,12 +98,12 @@
             if(data.orientation == 'vertical'){
                 data.leftHeight = parseFloat(data.$left.css('height'));
                 data.rightHeight = parseFloat(data.$right.css('height'));
-                $panestack.on('mousemove.panestack_mouse', data, verticalResize);
+                $panestack.on('mousemove.panestack:mouse', data, verticalResize);
             }
             else{
                 data.leftWidth = parseFloat(data.$left.css('width'));
                 data.rightWidth = parseFloat(data.$right.css('width'));
-                $panestack.on('mousemove.panestack_mouse', data, horizontalResize);
+                $panestack.on('mousemove.panestack:mouse', data, horizontalResize);
             }
         });
     }
