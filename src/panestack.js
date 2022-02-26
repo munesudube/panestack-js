@@ -119,7 +119,7 @@
     }
 
     $.fn.panestack = function(options){
-        options = $.extend({}, defaultOptions, trimObj(options));
+        options = $.extend({}, defaultOptions, trimObj( options ));
         if(typeof options.resizeHandleWidth !== 'number' || options.resizeHandleWidth <= 0 || options.resizeHandleWidth >= 10) options.resizeHandleWidth = 3;
 
         this.each(function(){
@@ -135,6 +135,14 @@
 
             let panestack = {};
             panestack.total_scale = 0;
+            panestack.childStacks = [];
+
+            var parent_panestack = $this.parent().data( '_panestack' )
+
+            if( parent_panestack ){
+                parent_panestack.childStacks.push( this )
+            }
+
 
             //Work out the scales
             $this.contents().each(function(){
@@ -142,6 +150,7 @@
 
                 if($child.hasClass(options.resizeHandleClass)) return; //Ignore resize handles
 
+                //Remove everything that is not a pane
                 if(!$child.hasClass(options.paneClass)) {
                     this.parentElement.removeChild(this);
                     return;
@@ -150,9 +159,12 @@
                 if(isNaN(scale)) scale = 1;
 
                 this.dataset.scale = scale;
+                $child.data('_panestack_scale', scale)
 
                 panestack.total_scale += scale;
             });
+
+            $this.data('_panestack', panestack)
 
             let $panes = $this.children('.' + options.paneClass);
             let lastChildIndex = $panes.length - 1;
@@ -244,6 +256,8 @@
 
                 var $panestack = $(this);
 
+                var _panestack = $panestack.data( '_panestack' );
+
                 let is_vertical = $panestack.hasClass(e.data.verticalClass);
 
                 if(!is_vertical){
@@ -252,7 +266,22 @@
                         $(this).css('height', pixels(height));
                     });
                 }
+                else{
+                    var total_scale = _panestack.total_scale;
+                    let total_space = getHeight($this);
 
+                    $panestack.children('.' + e.data.paneClass).each(function(){
+                        let scale = this.dataset.scale ? this.dataset.scale : $(this).data('_panestack_scale');
+                        let height = total_space * ( scale / total_scale );
+                        height = Math.floor(height * 10) / 10;
+                        $(this).css( 'width', '100%' ).css( 'height', pixels( height ) ).css( 'float', 'none' );
+                    });
+                }
+
+
+                for(var x in _panestack.childStacks){
+                    $( _panestack.childStacks[x] ).trigger( 'resized' );
+                }
 
                 return false; //Stop bubbling (overkill)
             });
